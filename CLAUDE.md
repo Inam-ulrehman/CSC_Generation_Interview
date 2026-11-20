@@ -169,8 +169,12 @@ Brief description of the feature.
 
 ### UI Testing (Browser)
 
-Passing tests is not enough for UI work. After `npm run check` passes, use the
-browser (Claude in Chrome) to check the feature in the running app:
+Passing tests is not enough for UI work. After `npm run check` passes, use a
+real browser to check the feature in the running app (the `ui-tester` agent
+knows how): Claude in Chrome if its tools are loaded, otherwise **Playwright**
+(dev dependency, script in `_test/{feature}/ui-check.ts`, screenshots in
+`_test/{feature}/screenshots/`). Don't loop on Chrome restarts - fall back to
+Playwright.
 
 1. **Looks right** - open the page, take a screenshot, check layout, text and states
    (loading, empty, error).

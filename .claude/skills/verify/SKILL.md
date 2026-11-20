@@ -23,7 +23,9 @@ In a single message, launch the relevant subagents so they run at the same
 time:
 - `api-tester` - if any API files changed. Give it the endpoints and files.
 - `ui-tester` - if any UI files changed. Give it the URL, the feature, and
-  what the user should see.
+  what the user should see. Start the dev servers first (background) so the
+  tester can use them. It uses Claude in Chrome if loaded, else Playwright -
+  a missing Chrome connection is not a reason to skip the UI check.
 
 Skip a tester only if nothing in its area changed, and say that you skipped it.
 
