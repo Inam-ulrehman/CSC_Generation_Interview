@@ -1,7 +1,9 @@
 // Checks the interview API key, then starts Claude Code with it.
 // Key source: ANTHROPIC_API_KEY in .env, otherwise you're asked to paste it.
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { createInterface } from "node:readline/promises";
 import Anthropic from "@anthropic-ai/sdk";
 
@@ -58,6 +60,38 @@ async function checkKey(apiKey: string): Promise<boolean> {
   }
 }
 
+interface ClaudeConfig {
+  hasCompletedOnboarding?: boolean;
+  customApiKeyResponses?: { approved?: string[]; rejected?: string[] };
+  [other: string]: unknown;
+}
+
+// FIX (2026-11-25): Pre-approve the key in Claude Code's global config
+// Problem: interactive `claude` showed "Select login method" even with a valid ANTHROPIC_API_KEY
+// Why: first-run onboarding ignores the env key, and afterwards Claude Code only uses an
+// env key the user approved (stored as its last 20 chars in customApiKeyResponses.approved)
+// Now: we mark onboarding done and approve the key, so Claude Code starts with it directly
+function approveKeyForClaudeCode(key: string) {
+  const file = join(process.env.CLAUDE_CONFIG_DIR ?? homedir(), ".claude.json");
+  let config: ClaudeConfig = {};
+  if (existsSync(file)) {
+    try {
+      config = JSON.parse(readFileSync(file, "utf8")) as ClaudeConfig;
+    } catch {
+      console.log(`[!] Could not parse ${file}; Claude Code may ask you to approve the key.`);
+      return;
+    }
+  }
+  const keyId = key.slice(-20);
+  const responses = config.customApiKeyResponses ?? {};
+  config.customApiKeyResponses = {
+    approved: [...new Set([...(responses.approved ?? []), keyId])],
+    rejected: (responses.rejected ?? []).filter((id) => id !== keyId),
+  };
+  config.hasCompletedOnboarding = true;
+  writeFileSync(file, JSON.stringify(config, null, 2));
+}
+
 async function main() {
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   let key = cleanKey(process.env.ANTHROPIC_API_KEY ?? "");
@@ -79,6 +113,7 @@ async function main() {
     return;
   }
 
+  approveKeyForClaudeCode(key);
   console.log("Starting Claude Code...\n");
   spawn("claude", [], {
     stdio: "inherit",
