@@ -13,6 +13,24 @@ npm run check      # Typecheck + tests - run before saying a task is done
 
 ---
 
+## Tech Stack (Default)
+
+Use this stack for every feature unless the user says otherwise.
+
+| Layer | Stack | Location |
+|-------|-------|----------|
+| Backend | **Express + TypeScript** (run with `tsx`) | `src/server/` |
+| Frontend | **React + Vite + TypeScript** (`.tsx`) | `src/client/` |
+| Tests | vitest (unit/API), Playwright (browser) | `_test/{feature}/` |
+
+- Both sides are TypeScript in strict mode - no plain `.js` files for app code.
+- Backend serves the API under `/api`. In dev, the Vite dev server proxies `/api` to Express.
+- Types shared by both sides (e.g. request/response shapes) go in `src/shared/`.
+- Don't name a client folder `api/` - the Vite `/api` proxy would catch its
+  source files (use `src/client/services/` for fetch helpers instead).
+
+---
+
 ## Subagents & Skills
 
 | Name | Type | Use when |
@@ -268,13 +286,17 @@ import { generateReply, buildPrompt } from "./services/ai/index.js";
 ### New Feature Module Template
 
 ```
-src/services/{feature}/
+src/server/routes/{feature}.ts   # Express router (thin: parse, validate, call service)
+
+src/server/services/{feature}/
 ├── index.ts          # Exports public API
 ├── {feature}.ts      # Main logic
 ├── helpers.ts        # Internal helpers (if needed)
 └── constants.ts      # Feature constants (if needed)
 
-src/components/{Feature}/
-├── {Feature}.tsx     # Main component
+src/client/components/{Feature}/
+├── {Feature}.tsx     # Main React component
 └── sub-components/   # If needed
+
+src/client/services/{feature}Client.ts  # fetch calls to /api
 ```
